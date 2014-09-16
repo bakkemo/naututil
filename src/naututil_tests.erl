@@ -75,4 +75,7 @@ portal_test() ->
     ?assertEqual(200, naututil:index(GR, [returncode])),
     ?assertEqual("OK", naututil:index(GR, [state])),
     Body = naututil:desure(naututil:index(GR, [body])),
+	Get = re:run(Body,  "http://httpbin.com:80/get"),
+	?assert(re:run(Body,  "http://httpbin.com:80/get") /=  nomatch),	
+	
     Body.
