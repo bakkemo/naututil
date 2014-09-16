@@ -57,9 +57,22 @@ portal_test() ->
     
     
     TR = naututil:get_token(Email, "password"),
-    ?assertEqual(201, naututil:index(R, [returncode])),
-    ?assertEqual("Created", naututil:index(R, [state])),
-    ?assertEqual(<<"Bearer">>, naututil:index(TR, [body, <<"token_type">>]),
+    ?assertEqual(201, naututil:index(TR, [returncode])),
+    ?assertEqual("Created", naututil:index(TR, [state])),
+    ?assertEqual(<<"Bearer">>, naututil:index(TR, [body, <<"token_type">>])),
+    
+    % lets get an access token and get a portal 
     Tok = naututil:index(TR, [body, <<"access_token">>]),
-    Tok. 
-
+    PR = naututil:create_portal(Tok,ServiceName,"get",0),
+    % PR.    
+    ?assertEqual(201, naututil:index(TR, [returncode])),
+    ?assertEqual("Created", naututil:index(TR, [state])),
+    
+    PID = naututil:desure(naututil:index(PR, [body, <<"headers">>, <<"X-Portal-Id">>])),
+    PUri = naututil:desure(naututil:index(PR, [body, <<"uri">>])),
+    GR = naututil:get_portal(PUri, PID),
+    
+    ?assertEqual(200, naututil:index(GR, [returncode])),
+    ?assertEqual("OK", naututil:index(GR, [state])),
+    Body = naututil:desure(naututil:index(GR, [body])),
+    Body.
