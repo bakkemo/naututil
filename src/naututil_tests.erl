@@ -14,7 +14,14 @@ random_email() ->
     random_string(10) ++ "@tld.com".
 
 
+test_user(UserName, Email, Password) ->
+    {RC, S, _B} = naututil:create_user(UserName, Email, Password),     
+    ?assertEqual(201, RC),
+    ?assertEqual("Created", S).
+    
+
 name_test() ->
+    inets:start(),
     {A1,A2,A3} = now(),
     random:seed(A1, A2, A3),
     N = random_email(),
@@ -68,14 +75,20 @@ portal_test() ->
     ?assertEqual(201, naututil:index(TR, [returncode])),
     ?assertEqual("Created", naututil:index(TR, [state])),
     
+    % portal id, uri   
     PID = naututil:desure(naututil:index(PR, [body, <<"headers">>, <<"X-Portal-Id">>])),
     PUri = naututil:desure(naututil:index(PR, [body, <<"uri">>])),
-    GR = naututil:get_portal(PUri, PID),
     
+    % get from the portal where we know something in the body
+    GR = naututil:get_portal(PUri, PID),
     ?assertEqual(200, naututil:index(GR, [returncode])),
     ?assertEqual("OK", naututil:index(GR, [state])),
     Body = naututil:desure(naututil:index(GR, [body])),
-	Get = re:run(Body,  "http://httpbin.com:80/get"),
 	?assert(re:run(Body,  "http://httpbin.com:80/get") /=  nomatch),	
-	
-    Body.
+    	
+    % get a new token    
+    TR2 = naututil:get_token(Email, "password"),
+    ?assertEqual(201, naututil:index(TR2, [returncode])),
+    ?assertEqual("Created", naututil:index(TR2, [state])),
+    ?assertEqual(<<"Bearer">>, naututil:index(TR2, [body, <<"token_type">>])).
+    %Tok2
