@@ -16,9 +16,9 @@ random_email() ->
 
 test_user(UserName, Email, Password) ->
     {RC, S, _B} = naututil:create_user(UserName, Email, Password),     
-    ?assertEqual(201, RC),
-    ?assertEqual("Created", S).
-    
+    %?assertEqual(201, RC),
+    %?assertEqual("Created", S).
+    {RC,S}.
 
 name_test() ->
     inets:start(),
@@ -27,9 +27,10 @@ name_test() ->
     N = random_email(),
     
     % we expect this user creation to work
-    {RC, S, _B} = naututil:create_user("foo", N, "password"),     
-    ?assertEqual(201, RC),
-    ?assertEqual("Created", S),
+    ?assertEqual( test_user("foo",N, "password") , {201, "Created"}), 
+    %{RC, S, _B} = naututil:create_user("foo", N, "password"),     
+    %?assertEqual(201, RC),
+    %?assertEqual("Created", S),
     % trying to create the same user is expected to fail
     
     {RC2, S2, B2} = naututil:create_user("foo", N, "password"), 
