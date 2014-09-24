@@ -83,7 +83,7 @@ portal_test() ->
     ?assertEqual(200, naututil:index(GR, [returncode])),
     ?assertEqual("OK", naututil:index(GR, [state])),
     Body = naututil:desure(naututil:index(GR, [body])),
-	?assert(re:run(Body,  "http://httpbin.com:80/get") /=  nomatch),	
+    ?assert(re:run(Body,  "http://httpbin.com:80/get") /=  nomatch),	
     	
     % get a new token    
     TR2 = naututil:get_token(Email, "password"),
@@ -106,7 +106,32 @@ portal_test() ->
     ?assertEqual(200, naututil:index(GR2, [returncode])),
     ?assertEqual("OK", naututil:index(GR2, [state])),
     Body2 = naututil:desure(naututil:index(GR2, [body])),
-	?assert(re:run(Body2,  "http://httpbin.com:80/get") /=  nomatch).
+    ?assert(re:run(Body2,  "http://httpbin.com:80/get") /=  nomatch),
+    
+    % now a portal with short expiry (10 secs)
 
+    PR3 = naututil:create_portal(Tok2,ServiceName,"get",250),
+    ?assertEqual(201, naututil:index(PR3, [returncode])),
+    ?assertEqual("Created", naututil:index(PR3, [state])),
+    
+    PID2  = naututil:desure(naututil:index(PR3, [body, <<"headers">>, <<"X-Portal-Id">>])),
+    PUri2 = naututil:desure(naututil:index(PR3, [body, <<"uri">>])),
+    
+    % should still be a good portal
+    GR3 = naututil:get_portal(PUri2, PID2),
+   
+    ?assertEqual(200, naututil:index(GR3, [returncode])),
+    ?assertEqual("OK", naututil:index(GR3, [state])),
+    Body3 = naututil:desure(naututil:index(GR3, [body])),
+    ?assert(re:run(Body3,  "http://httpbin.com:80/get") /=  nomatch),
+    
+    timer:sleep(250),
+    		
+    GR4 = naututil:get_portal(PUri2, PID2),
+    ?assertEqual(410, naututil:index(GR4, [returncode])),
+    ?assertEqual("Gone", naututil:index(GR4, [state])),
+    ?assertEqual(<<"invalid_request">>, naututil:index(GR4, [body, <<"error">>])),
+    ?assertEqual(<<"Expired portal">>, naututil:index(GR4, [body, <<"error_decription">>])).
+    
 
 
