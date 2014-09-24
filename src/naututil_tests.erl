@@ -27,15 +27,13 @@ name_test() ->
     N = random_email(),
     
     % we expect this user creation to work
-    ?assertEqual( test_user("foo",N, "password") , {201, "Created"}), 
-    %{RC, S, _B} = naututil:create_user("foo", N, "password"),     
-    %?assertEqual(201, RC),
-    %?assertEqual("Created", S),
+    {RC, S, _B} = naututil:create_user("foo", N, "password"),     
+    ?assertEqual({201, "Created"}, {RC,S}),
     % trying to create the same user is expected to fail
     
     {RC2, S2, B2} = naututil:create_user("foo", N, "password"), 
     ?assertEqual(400, RC2),
-    ?assertEqual("Bad Request", S2),
+    ?assertEqual({400, "Bad Request"}, {RC2,S2}),
     ?assertEqual(<<"User exists">>, naututil:index(B2, [<<"error_decription">>])),
     N.
 
@@ -73,8 +71,8 @@ portal_test() ->
     Tok = naututil:index(TR, [body, <<"access_token">>]),
     PR = naututil:create_portal(Tok,ServiceName,"get",0),
     % PR.    
-    ?assertEqual(201, naututil:index(TR, [returncode])),
-    ?assertEqual("Created", naututil:index(TR, [state])),
+    ?assertEqual(201, naututil:index(PR, [returncode])),
+    ?assertEqual("Created", naututil:index(PR, [state])),
     
     % portal id, uri   
     PID = naututil:desure(naututil:index(PR, [body, <<"headers">>, <<"X-Portal-Id">>])),
@@ -91,5 +89,24 @@ portal_test() ->
     TR2 = naututil:get_token(Email, "password"),
     ?assertEqual(201, naututil:index(TR2, [returncode])),
     ?assertEqual("Created", naututil:index(TR2, [state])),
-    ?assertEqual(<<"Bearer">>, naututil:index(TR2, [body, <<"token_type">>])).
-    %Tok2
+    ?assertEqual(<<"Bearer">>, naututil:index(TR2, [body, <<"token_type">>])),
+    Tok2 = naututil:index(TR2, [body, <<"access_token">>]),
+
+    % assignment of a new token means the old one should be invalid
+
+    PR2 = naututil:create_portal(Tok,ServiceName,"get",0),
+    ?assertEqual(401, naututil:index(PR2, [returncode])),
+    ?assertEqual("Unauthorized", naututil:index(PR2, [state])),
+    ?assertEqual(<<"access_denied">>, naututil:index(PR2, [body, <<"error">>])),
+    ?assertEqual(<<"Invalid Bearer token">>, naututil:index(PR2, [body, <<"error_decription">>])),
+
+    % yet the previous portal should work till it expires
+    
+    GR2 = naututil:get_portal(PUri, PID),
+    ?assertEqual(200, naututil:index(GR2, [returncode])),
+    ?assertEqual("OK", naututil:index(GR2, [state])),
+    Body2 = naututil:desure(naututil:index(GR2, [body])),
+	?assert(re:run(Body2,  "http://httpbin.com:80/get") /=  nomatch).
+
+
+
